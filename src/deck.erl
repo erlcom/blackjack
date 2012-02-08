@@ -1,4 +1,4 @@
-%%%-------------------------------------------------------------------
+ %%%-------------------------------------------------------------------
 %%% @doc 
 %%% The task for week 1 is to implement this module, deck.
 %%% @end
@@ -14,12 +14,18 @@
 -export([shuffle/0]).
 -export([get_card/0]).
 
-
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {}).
+-record(state, {deck=[], cards_left=0}).
+
+-define(NRDECKS, 4).
+-define(SPLITPERCENTAGE, 0.8).
+
+-type suite() :: spades | hearts | clubs | diamonds.
+-type value() :: 2..10 | jack | queen | king | ace.
+-type card() :: {suite(), value()}.
 
 %%%===================================================================
 %%% API
@@ -34,26 +40,23 @@
 %%--------------------------------------------------------------------
 -spec start() -> {ok, pid()}.
 start() ->
-    {ok, self()}.
+    gen_server:start_link({local,deckPid},?MODULE, [], []). 
 
 -spec stop() -> ok.
 stop() ->
-    ok.
+    gen_server:call(deckPid, terminate).
 
 -spec is_time_to_shuffle() -> boolean().
 is_time_to_shuffle() ->
-    false.
+    gen_server:call(deckPid, is_it_time_to_shuffle).
 
--spec shuffle() -> ok.
+-spec shuffle() -> {ok}.
 shuffle() ->
-    ok.
+    gen_server:call(deckPid, shuffle).
 
--type suite() :: spades | hearts | clubs | diamonds.
--type value() :: 2..10 | jack | queen | king | ace.
--type card() :: {suite(), value()}.
 -spec get_card() -> card().
 get_card() ->
-    {spades, ace}.
+    gen_server:call(deckPid, get_card).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -71,7 +74,7 @@ get_card() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
+    {ok, internal_shuffle()}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -87,9 +90,20 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
+handle_call(get_card, _From, State) ->    
+    NewState = State#state{deck=tl(State#state.deck), cards_left=State#state.cards_left -1},
+    {reply, hd(State#state.deck), NewState};
+
+handle_call(is_it_time_to_shuffle, _From, State) ->
+    {reply, State#state.cards_left =< 0, State};
+
+handle_call(shuffle, _From, _State) ->
+    {reply, ok, internal_shuffle()};
+
+handle_call(terminate, _From, State) ->
+    NewState = State#state{deck=[], cards_left=0},    
+    {stop, normal, ok, NewState}.
+
 
 %%--------------------------------------------------------------------
 %% @private
@@ -130,7 +144,6 @@ handle_info(_Info, State) ->
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
     ok.
-
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -146,3 +159,18 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 
+internal_shuffle() ->
+    Deck = [{S,V} || S <- lists:seq(2,10) ++ [jack, queen, king, ace] , V <- [spades, hearts, clubs, diamonds]],
+    DeckList = lists:flatten(lists:duplicate(?NRDECKS,Deck)),
+    ShuffledDecks = random_list(DeckList),
+    SplitNr = round(length(ShuffledDecks)*?SPLITPERCENTAGE),
+    #state{deck=ShuffledDecks,cards_left=SplitNr}.
+    
+
+random_list(List) ->                                          
+   random:seed(now()),
+   {NewList, _} = lists:foldl( fun(_El, {Acc,Rest}) ->          
+       RandomEl = lists:nth( random:uniform(length(Rest)), Rest),
+       {[RandomEl|Acc], lists:delete(RandomEl, Rest)}            
+   end, {[],List}, List),                                        
+   NewList.
