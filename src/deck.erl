@@ -167,10 +167,7 @@ internal_shuffle() ->
     #state{deck=ShuffledDecks,cards_left=SplitNr}.
     
 
-random_list(List) ->                                          
+random_list(List) ->
    random:seed(now()),
-   {NewList, _} = lists:foldl( fun(_El, {Acc,Rest}) ->          
-       RandomEl = lists:nth( random:uniform(length(Rest)), Rest),
-       {[RandomEl|Acc], lists:delete(RandomEl, Rest)}            
-   end, {[],List}, List),                                        
+   NewList = [X||{_,X} <- lists:sort([ {random:uniform(), N} || N <- List])],
    NewList.
