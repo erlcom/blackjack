@@ -20,7 +20,7 @@
 
 -record(state, {deck=[], cards_left=0}).
 
--define(NRDECKS, 4).
+-define(NRDECKS, 6).
 -define(SPLITPERCENTAGE, 0.8).
 
 -type suite() :: spades | hearts | clubs | diamonds.
