@@ -160,7 +160,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 internal_shuffle() ->
-    Deck = [{S,V} || S <- lists:seq(2,10) ++ [jack, queen, king, ace] , V <- [spades, hearts, clubs, diamonds]],
+    Deck = [{S,V} || V <- lists:seq(2,10) ++ [jack, queen, king, ace] , S <- [spades, hearts, clubs, diamonds]],
     DeckList = lists:flatten(lists:duplicate(?NRDECKS,Deck)),
     ShuffledDecks = random_list(DeckList),
     SplitNr = round(length(ShuffledDecks)*?SPLITPERCENTAGE),
