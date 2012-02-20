@@ -6,8 +6,9 @@
 -define(TOTALNRCARDS, 6*52).
 -define(NRINITIALCARDSTOSHUFFLE, round(?TOTALNRCARDS*0.8)).
 
-start_server_test_() ->
-    ?_assertMatch({ok,_Pid}, deck:start()).
+start_server_test() ->
+    ?assertMatch({ok,_Pid}, deck:start()),
+    ?assertEqual(ok, deck:stop()).
 
 deck_test_() ->
     {foreach,
@@ -21,26 +22,26 @@ deck_test_() ->
 
 should_get_card() ->
     Card = deck:get_card(),
-    validateCard(Card).
+    validate_card(Card).
 
 should_not_be_time_to_shuffle() ->
     deck:get_card(),
     ?assertEqual(false,deck:is_time_to_shuffle()),
-    drawNcards(random:uniform(?NRINITIALCARDSTOSHUFFLE-2)),    
+    draw_cards(random:uniform(?NRINITIALCARDSTOSHUFFLE-2)),    
     ?assertEqual(false,deck:is_time_to_shuffle()).
 
 should_be_time_to_shuffle() -> 
-    drawNcards(?NRINITIALCARDSTOSHUFFLE),
+    draw_cards(?NRINITIALCARDSTOSHUFFLE),
     ?assertEqual(true,deck:is_time_to_shuffle()).
 
 should_shuffle_deck() ->
-    drawNcards(?NRINITIALCARDSTOSHUFFLE),
+    draw_cards(?NRINITIALCARDSTOSHUFFLE),
     deck:shuffle(),
     ?assertEqual(false,deck:is_time_to_shuffle()).
 
 should_assert_on_to_many_drawn_cards() ->
-  drawNcards(?TOTALNRCARDS-1),
-  ?assertError(undef, deck:draw_card()).
+    draw_cards(?TOTALNRCARDS),
+    ?assertError(undef, deck:draw_card()).
 
 %% Internal functions
 setup() ->
@@ -49,18 +50,18 @@ setup() ->
 teardown(_) ->
     deck:stop().
 
-drawNcards(N) ->
-     [deck:get_card() || _Foo <- lists:seq(1,N)].
+draw_cards(N) ->
+     [deck:get_card() || _ <- lists:seq(1,N)].
 
-validateCard({Value,Suite}) ->
-    ?assertEqual(true,validateCardSuite(Suite)),
-    ?assertEqual(true,validateCardValue(Value)).
+validate_card({Suite,Value}) ->
+    ?assertEqual(true, validate_card_suite(Suite)),
+    ?assertEqual(true, validate_card_value(Value)).
 
-validateCardSuite(Suite) ->
+validate_card_suite(Suite) ->
     ValidSuites = [spades, hearts, clubs, diamonds],
     lists:member(Suite,ValidSuites).    
     
-validateCardValue(Value)-> 
+validate_card_value(Value)-> 
     ValidValues = lists:seq(2,10) ++ [jack, queen, king, ace],
-    lists:member(Value,ValidValues).
+    lists:member(Value, ValidValues).
     
