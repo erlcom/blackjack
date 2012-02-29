@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/erlcom/blackjack.png)](http://travis-ci.org/erlcom/blackjack)
+
 Way of working
 ==============
 * Clone this repository to your account
