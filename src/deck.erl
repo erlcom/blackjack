@@ -1,4 +1,4 @@
- %%%-------------------------------------------------------------------
+%%%-------------------------------------------------------------------
 %%% @doc 
 %%% The task for week 1 is to implement this module, deck.
 %%% @end
@@ -31,32 +31,25 @@
 %%% API
 %%%===================================================================
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the server
-%%
-%% @spec start() -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
 -spec start() -> {ok, pid()}.
 start() ->
-    gen_server:start_link({local,deckPid},?MODULE, [], []). 
+    gen_server:start_link({local,?MODULE},?MODULE, [], []). 
 
 -spec stop() -> ok.
 stop() ->
-    gen_server:call(deckPid, terminate).
+    gen_server:call(?MODULE, terminate).
 
 -spec is_time_to_shuffle() -> boolean().
 is_time_to_shuffle() ->
-    gen_server:call(deckPid, is_it_time_to_shuffle).
+    gen_server:call(?MODULE, is_it_time_to_shuffle).
 
 -spec shuffle() -> {ok}.
 shuffle() ->
-    gen_server:call(deckPid, shuffle).
+    gen_server:call(?MODULE, shuffle).
 
 -spec get_card() -> card().
 get_card() ->
-    gen_server:call(deckPid, get_card).
+    gen_server:call(?MODULE, get_card).
 
 %%%===================================================================
 %%% gen_server callbacks
