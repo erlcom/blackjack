@@ -28,7 +28,7 @@
 -type name() :: string().
 -type id() :: integer().
 -type enter_table_error_reason() :: {position_taken, position()} | {banned, name()} | {invalid_position, position()}. 
--type leave_table_error_reason() :: {position_not_taken, position()}.
+-type leave_table_error_reason() :: {not_your_position, position()}.
 
 %%%===================================================================
 %%% API
@@ -201,11 +201,11 @@ leave_position(Pid,State,Position) ->
     case orddict:is_key(Position,State#state.players) of
 	true -> 
 	    Player = orddict:fetch(Position,State#state.players),
-	    PlayerErasedState = verify_pid_of_player(Pid,Player,State,Position),
+	    PlayerErasedState = leave_if_players_position(Pid,Player,State,Position),
 	    NewState = demonitor_if_player_leaving_table(Pid,PlayerErasedState),
    	    {ok, NewState};
 	false -> 
-	    {position_not_taken,State}
+	    {not_your_position,State}
     end.
 
 
@@ -213,7 +213,7 @@ leave_table(Pid,State,Position) when Position > 0  ->
     case orddict:is_key(Position,State#state.players) of
 	true -> 
 	    Player = orddict:fetch(Position,State#state.players),
-	    NewState = verify_pid_of_player(Pid,Player,State,Position),
+	    NewState = leave_if_players_position(Pid,Player,State,Position),
 	    leave_table(Pid,NewState,Position-1);
 	false -> 
 	    leave_table(Pid,State,Position-1)
@@ -222,9 +222,9 @@ leave_table(Pid,State,0) ->
     demonitor_if_player_leaving_table(Pid,State).
         
 
-verify_pid_of_player(Pid,Player,State,Position) when Player#player.from == Pid ->
+leave_if_players_position(Pid,Player,State,Position) when Player#player.from == Pid ->
     State#state{players=orddict:erase(Position,State#state.players)};
-verify_pid_of_player(_Pid,_Player,State,_Position) -> 
+leave_if_players_position(_Pid,_Player,State,_Position) -> 
     State.
 
 

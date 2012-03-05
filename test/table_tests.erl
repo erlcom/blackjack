@@ -16,6 +16,8 @@ table_test_() ->
       [fun ?MODULE:should_add_player/0, % tests
        fun ?MODULE:should_add_player_when_entering_if_vacant_position/0,
        fun ?MODULE:should_be_possible_to_have_multiple_positions/0,
+       fun ?MODULE:should_be_possible_to_have_multiple_split_positioins/0,
+       fun ?MODULE:should_give_next_vacant_position_to_entering_player/0,
        fun ?MODULE:should_return_error_on_occupied_position/0,
        fun ?MODULE:should_return_error_on_invalid_position/0,
        fun ?MODULE:should_get_vacant_positions/0,
@@ -23,6 +25,7 @@ table_test_() ->
        fun ?MODULE:should_return_error_if_leaving_non_taken_position/0,
        fun ?MODULE:should_leave_all_positions_when_leaving_table/0,
        fun ?MODULE:should_handle_multiple_player_pids/0,
+       fun ?MODULE:should_handle_multiple_positions_for_multiple_pids/0,
        fun ?MODULE:should_handle_player_deaths/0,
        fun ?MODULE:should_not_leave_other_players_position/0]}.
 
@@ -31,11 +34,22 @@ should_add_player() ->
 
 should_add_player_when_entering_if_vacant_position() ->
     ?assertMatch({ok,1},table:enter_table("Kalle",1)),
-    ?assertMatch({ok,2},table:enter_table("Pelle",2)).
+    ?assertMatch({ok,2},table:enter_table("Pelle",2)),
+    ?assertMatch({ok,4},table:enter_table("Laleh",4)).
 
 should_be_possible_to_have_multiple_positions() ->
     ?assertMatch({ok,1},table:enter_table("Pelle",1)),
-    ?assertMatch({ok,2},table:enter_table("Pelle",2)).
+    ?assertMatch({ok,2},table:enter_table("Pelle",2)),
+    ?assertMatch({ok,3},table:enter_table("Pelle")).
+
+should_be_possible_to_have_multiple_split_positioins() ->
+    ?MODULE:should_be_possible_to_have_multiple_positions(),
+    ?assertMatch({ok,4},table:enter_table("Pelle",4)).
+
+should_give_next_vacant_position_to_entering_player() ->
+    table:enter_table("Kalle",1),
+    table:enter_table("Kalle",2),
+    ?assertMatch({ok,3},table:enter_table("Pelle")).
 
 should_return_error_on_invalid_position() ->
     ?assertMatch({invalid_position,?NRPOSITIONSATTABLE+1},table:enter_table("Kalle",?NRPOSITIONSATTABLE+1)).
@@ -57,9 +71,10 @@ should_free_up_position_if_player_leaves_position() ->
     List = lists:seq(1,?NRPOSITIONSATTABLE),
     ?assertMatch({ok,List}, table:get_vacant_positions()).
 
-%Definition here is uncertain... No need to return error if leaving nontaken?
+% Definition here is uncertain... No need to return error if leaving nontaken?
+% Perhaps use universal not_your_position for this and trying to leave other player's position?
 should_return_error_if_leaving_non_taken_position() ->
-    ?assertMatch(position_not_taken, table:leave_position(1)).
+    ?assertMatch(not_your_position, table:leave_position(1)).
   
 should_leave_all_positions_when_leaving_table() ->
     ?assertMatch({ok,1}, table:enter_table("Kalle",1)),
@@ -76,6 +91,19 @@ should_handle_multiple_player_pids() ->
     sendMessage(Player1,die),
     sendMessage(Player2,die).
 
+should_handle_multiple_positions_for_multiple_pids() ->
+    {Player1,Player2} = spawn_and_enter_two_players("Kalle","Pelle"),
+    sendMessage(Player1, enter_vacant_position),
+    ?assertMatch({ok,[4]}, table:get_vacant_positions()),
+    sendMessage(Player1, leave_position_1),
+    ?assertMatch({ok,[1,4]}, table:get_vacant_positions()),
+    sendMessage(Player1, enter_vacant_position),
+    ?assertMatch({ok,[4]}, table:get_vacant_positions()),
+    sendMessage(Player2, enter_vacant_position),
+    ?assertMatch({ok,[]}, table:get_vacant_positions()),
+    sendMessage(Player1,die),
+    sendMessage(Player2,die).
+
 should_handle_player_deaths() ->
     Player1 = spawn_and_enter("Kalle"),
     sendMessage(Player1,die),
@@ -84,7 +112,7 @@ should_handle_player_deaths() ->
 
 should_not_leave_other_players_position() ->
     {Player1,Player2} = spawn_and_enter_two_players("Kalle","Pelle"),
-    sendMessage(Player2,leave_first_position),
+    sendMessage(Player2,leave_position_1),
     List = lists:seq(3,?NRPOSITIONSATTABLE),
     ?assertMatch({ok,List}, table:get_vacant_positions()),
     sendMessage(Player1,die),
@@ -113,13 +141,17 @@ playerLoop(Name) ->
 	    table:enter_table(Name),
 	    Pid ! {self(),enter,done},
 	    playerLoop(Name);
+	{enter_vacant_position,Pid} ->
+	    table:enter_table(Name),
+	    Pid ! {self(),enter_vacant_position,done},
+	    playerLoop(Name);
 	{leave_table,Pid} ->
 	    table:leave_table(),
-	    Pid ! {self(),leaveTable,done},
+	    Pid ! {self(),leave_table,done},
 	    playerLoop(Name);
-	{leave_first_position,Pid} ->
+	{leave_position_1,Pid} ->
 	    table:leave_position(1),
-	    Pid ! {self(),leave_first_position,done},
+	    Pid ! {self(),leave_position_1,done},
 	    playerLoop(Name);
 	{die,Pid} ->
 	    Pid ! {self(),die,done},
