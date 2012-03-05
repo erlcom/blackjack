@@ -7,7 +7,11 @@
 % Should notify main server if a player has left.
 % Should communicate with main server using player id?
 
+* Would be alot simpler if not demonitoring player, just call leave table for all
+* How to test monitoring?
 
-* More about debugging. How to start shell easily with both src and test compiled?
+
+* More about debugging. Now its far to timeconsuming...
+* How to start shell easily with both src and test compiled?
 * More on dbg...
 * What was the shortcut for running tests in emacs?
