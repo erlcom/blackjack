@@ -15,7 +15,7 @@
 -export([leave_table/0]).
 -export([get_vacant_positions/0]).
 
-%% gen_server callbacks
+% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
@@ -104,12 +104,12 @@ handle_call({enter_table, Name, Position}, From, State) ->
 handle_call({get_vacant_positions}, _From, State) ->
     {reply, {ok, get_vacant_position_list(State)}, State};
 
-handle_call({leave_position, Position}, _From, State) ->
-    {Result, NewState} = leave_position(Position, State),
+handle_call({leave_position, Position}, {FromPid,_FromRef}, State) ->
+    {Result, NewState} = leave_position(FromPid,State,Position),
     {reply, Result, NewState};
 
-handle_call({leave_table}, From, State) ->
-    NewState = leave_table(From,State,?NRPOSITIONSATTABLE),
+handle_call({leave_table}, {FromPid,_FromRef}, State) ->
+    NewState = leave_table(FromPid,State,?NRPOSITIONSATTABLE),
     {reply, ok, NewState};
 
 handle_call(terminate, _From, State) ->
@@ -138,6 +138,10 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+
+handle_info({'DOWN', _MonitorReference, process, Pid, _Reason}, State) ->
+    NewState = leave_table(Pid,State,?NRPOSITIONSATTABLE),
+    {noreply, NewState};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -173,11 +177,13 @@ code_change(_OldVsn, State, _Extra) ->
 add_player(Name,Position,From,State) ->
     {Result, NewState} = add_player_if_valid_position(Name,Position,From,State),
     case Result of
-	ok -> {reply, {ok,Position}, NewState};
+	ok -> 
+	    {PlayerPid,_Ref} = From,
+	    erlang:monitor(process, PlayerPid),
+	    {reply, {ok, Position}, NewState};
 	position_taken -> {reply, {position_taken, Position}, State};
 	invalid_position -> {reply, {invalid_position, Position}, State}
     end.    
-
 
 add_player_if_valid_position(_Name, Position,_From, State) when Position > ?NRPOSITIONSATTABLE->
    {invalid_position,State};
@@ -191,38 +197,36 @@ add_player_if_valid_position(Name,Position,{From,_Ref},State) ->
     end.
 
 
-leave_position(Position, State) ->
+leave_position(Pid,State,Position) ->
     case orddict:is_key(Position,State#state.players) of
 	true -> 
-	    NewOrddict = orddict:erase(Position,State#state.players),
-	    {ok, State#state{players=NewOrddict}};
+	    Player = orddict:fetch(Position,State#state.players),
+	    NewState = verify_pid_of_player(Pid,Player,State,Position),
+   	    {ok, NewState};
 	false -> 
 	    {position_not_taken,State}
     end.
 
 
-leave_table(From,State,Position) when Position > 0  ->
+leave_table(Pid,State,Position) when Position > 0  ->
     case orddict:is_key(Position,State#state.players) of
 	true -> 
 	    Player = orddict:fetch(Position,State#state.players),
-	    NewState = verify_pid_of_player(From,Player,State,Position),
-	    leave_table(From,NewState,Position-1);
+	    NewState = verify_pid_of_player(Pid,Player,State,Position),
+	    leave_table(Pid,NewState,Position-1);
 	false -> 
-	    leave_table(From,State,Position-1)
+	    leave_table(Pid,State,Position-1)
     end;
 leave_table(_From,State,0) ->
     State.
-
     
-verify_pid_of_player({From,_Pid},Player,State,Position) when Player#player.from == From ->
+verify_pid_of_player(Pid,Player,State,Position) when Player#player.from == Pid ->
     State#state{players=orddict:erase(Position,State#state.players)};
-verify_pid_of_player({_From,_Pid},_Player,State,_Position) -> 
+verify_pid_of_player(_Pid,_Player,State,_Position) -> 
     State.
-
 
 get_vacant_position_list(State) ->
     OccupiedKeys = orddict:fetch_keys(State#state.players),
     List = lists:seq(1,?NRPOSITIONSATTABLE),
     %Non-Intersection of List and OccupiedKeys
     [I || I <- List, not(lists:member(I,OccupiedKeys))].
-
