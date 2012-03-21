@@ -1,27 +1,17 @@
 %%%%%%%%%%%%%%%%%%%% TODO %%%%%%%%%%%%%%%%%%%%%%
 
 % REMAINING QUESTIONS AND ISSUES TABLE:
-% What if another player leaves the players position? How to test?    
-% Could add an -export([enter_table/1]), where player doesnt care abour position.
-
 % Communication with main needs further testing.
 % Should be possible to enter game with is ongoing, but should not make any "moves".
 % Should notify main if a player has entered.
 % Should notify main server if a player has left.
 % Should communicate with main server using player id?
 
+* Would be alot simpler if not demonitoring player, just call leave table for all
+* How to test monitoring?
 
-%%Questions:
-% I HATE THIS CODE, WHY DOES IT RETURN OK AND NOT MY REVERSED LIST??? ITS TAKEN ONE HOUR OF MY LIFE
-%check_vacant_positions(State) -> 
-%    check_vacant_positions(1,[],State).
-%check_vacant_positions(Position, VacantPositionList,_State) when Position > ?NRPOSITIONSATTABLE ->
-%    lists:reverse(VacantPositionList),
-%check_vacant_positions(Position, VacantPositionList, State) ->
-%    case orddict:is_key(Position,State#state.players) of
-%	false -> check_vacant_positions(Position+1, [Position | VacantPositionList], State),
-%		io:fwrite("FALSE Position ~w, vacantList ~w\n", [Position,VacantPositionList]);
-%	true -> check_vacant_positions(Position+1, VacantPositionList, State),
-%       	     io:fwrite("TRUE Position ~w, vacantList ~w\n",[VacantPositionList, Position])
-%    end.
-%
+
+* More about debugging. Now its far to timeconsuming...
+* How to start shell easily with both src and test compiled?
+* More on dbg...
+* What was the shortcut for running tests in emacs?
