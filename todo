@@ -7,11 +7,14 @@
 % Should notify main server if a player has left.
 % Should communicate with main server using player id?
 
-* Would be alot simpler if not demonitoring player, just call leave table for all
-* How to test monitoring?
+* I suppose all users of the event_manager should implement
+* handle_event functions. In that case:
+* How to test gen event? Make a subscriber?
 
+* Should types be moved to inclusion file?
+** type card
+** type value
+** type position
+** ...
 
-* More about debugging. Now its far to timeconsuming...
-* How to start shell easily with both src and test compiled?
-* More on dbg...
-* What was the shortcut for running tests in emacs?
+* define SERVER ?MODULE
